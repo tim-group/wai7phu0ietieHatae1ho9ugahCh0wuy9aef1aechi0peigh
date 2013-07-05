@@ -15,7 +15,7 @@ public class ReceiverTest extends IntegrationTest {
         byte[] body = randomise("message").getBytes();
         channel.basicPublish(inboundQueueName, "", null, body);
         
-        new Receiver(channel, inboundQueueName, outboundQueueName).main();
+        new Receiver(channel, inboundQueueName, outboundQueueName).start();
         
         GetResponse response = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
         assertArrayEquals(body, response.getBody());

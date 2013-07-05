@@ -21,7 +21,7 @@ public class Receiver {
         this.outboundQueueName = outboundQueueName;
     }
     
-    public void main() throws IOException, InterruptedException, ExecutionException, TimeoutException {
+    public void start() throws IOException, InterruptedException, ExecutionException, TimeoutException {
         channel.basicConsume(inboundQueueName, true, new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
