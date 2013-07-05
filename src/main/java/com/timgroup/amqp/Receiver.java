@@ -9,7 +9,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
-public class Application {
+public class Receiver {
 
     public void main(final Channel channel, String inboundQueueName, final String outboundQueueName) throws IOException, InterruptedException, ExecutionException, TimeoutException {
         channel.basicConsume(inboundQueueName, true, new DefaultConsumer(channel) {
