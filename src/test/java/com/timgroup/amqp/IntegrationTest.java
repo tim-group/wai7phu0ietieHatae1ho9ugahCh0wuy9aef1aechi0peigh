@@ -1,6 +1,7 @@
 package com.timgroup.amqp;
 
 import java.io.IOException;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -19,7 +20,10 @@ import com.timgroup.concurrent.SettableFuture;
 
 public abstract class IntegrationTest {
     
-    private static final String TEST_BROKER_URI = "amqp://localhost";
+    private static final Random RANDOM = new Random();
+    public static final String TEST_BROKER_HOST = "localhost";
+    public static final String TEST_BROKER_URI = "amqp://" + TEST_BROKER_HOST;
+    
     protected Connection connection;
     protected Channel channel;
     protected String inboundQueueName;
@@ -42,7 +46,7 @@ public abstract class IntegrationTest {
     }
     
     protected String randomise(String prefix) {
-        return prefix + "-" + System.currentTimeMillis();
+        return prefix + "-" + Long.toHexString(RANDOM.nextLong());
     }
     
     private static void configureSimpleQueue(Channel channel, String queueName) throws IOException {
