@@ -1,0 +1,16 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	testCompile group: 'junit', name: 'junit', version: '4.11'
+}
+
+eclipse {
+	classpath {
+		defaultOutputDir = file('.eclipse')
+	}
+}
