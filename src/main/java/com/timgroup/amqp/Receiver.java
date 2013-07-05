@@ -10,8 +10,18 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 public class Receiver {
-
-    public void main(final Channel channel, String inboundQueueName, final String outboundQueueName) throws IOException, InterruptedException, ExecutionException, TimeoutException {
+    
+    private final Channel channel;
+    private final String inboundQueueName;
+    private final String outboundQueueName;
+    
+    public Receiver(Channel channel, String inboundQueueName, String outboundQueueName) {
+        this.channel = channel;
+        this.inboundQueueName = inboundQueueName;
+        this.outboundQueueName = outboundQueueName;
+    }
+    
+    public void main() throws IOException, InterruptedException, ExecutionException, TimeoutException {
         channel.basicConsume(inboundQueueName, true, new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
