@@ -7,7 +7,6 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -18,15 +17,13 @@ import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.GetResponse;
 import com.timgroup.concurrent.SettableFuture;
 
-import static org.junit.Assert.assertArrayEquals;
-
-public class IntegrationTests {
+public abstract class IntegrationTest {
     
     private static final String TEST_BROKER_URI = "amqp://localhost";
-    private Connection connection;
-    private Channel channel;
-    private String inboundQueueName;
-    private String outboundQueueName;
+    protected Connection connection;
+    protected Channel channel;
+    protected String inboundQueueName;
+    protected String outboundQueueName;
     
     @Before
     public void setUp() throws Exception {
@@ -44,7 +41,7 @@ public class IntegrationTests {
         return queueName;
     }
     
-    private String randomise(String prefix) {
+    protected String randomise(String prefix) {
         return prefix + "-" + System.currentTimeMillis();
     }
     
@@ -77,19 +74,7 @@ public class IntegrationTests {
         }
     }
     
-    @Test
-    public void aMessageSentToTheInboundQueueIsMovedToTheOutboundQueue() throws Exception {
-        byte[] body = randomise("message").getBytes();
-        channel.basicPublish(inboundQueueName, "", null, body);
-        
-        new Application().main(channel, inboundQueueName, outboundQueueName);
-        
-        GetResponse response = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
-        
-        assertArrayEquals(body, response.getBody());
-    }
-    
-    private GetResponse basicConsumeOnce(final Channel channel, String queue, int timeout, TimeUnit unit) throws IOException,
+    protected GetResponse basicConsumeOnce(final Channel channel, String queue, int timeout, TimeUnit unit) throws IOException,
             InterruptedException, ExecutionException, TimeoutException {
         final SettableFuture<GetResponse> future = new SettableFuture<GetResponse>();
         
