@@ -65,10 +65,16 @@ public class Application implements Closeable {
     
     @Override
     public void close() throws IOException {
+        closeQuietly(receiver);
+        closeQuietly(transmitter);
+        connection.close();
+    }
+    
+    private void closeQuietly(Closeable closeable) {
         try {
-            transmitter.close();
-        } finally {
-            connection.close();
+            closeable.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
     

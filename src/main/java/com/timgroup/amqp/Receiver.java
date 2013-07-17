@@ -1,5 +1,6 @@
 package com.timgroup.amqp;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
 
@@ -8,13 +9,14 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
-public class Receiver {
+public class Receiver implements Closeable {
     
     public static final String SCHEDULED_DELIVERY_HEADER = "scheduled_delivery";
     
     private final Channel channel;
     private final String queueName;
     private final Transmitter transmitter;
+    private String consumerTag;
     
     public Receiver(Channel channel, String queueName, Transmitter transmitter) {
         this.channel = channel;
@@ -31,7 +33,7 @@ public class Receiver {
     }
     
     public void start() throws IOException {
-        channel.basicConsume(queueName, true, new DefaultConsumer(channel) {
+        consumerTag = channel.basicConsume(queueName, true, new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
                 Long scheduledDeliveryTime = getNumericHeader(properties, SCHEDULED_DELIVERY_HEADER);
@@ -56,6 +58,14 @@ public class Receiver {
             }
         }
         return null;
+    }
+    
+    @Override
+    public void close() throws IOException {
+        if (consumerTag != null) {
+            channel.basicCancel(consumerTag);
+            consumerTag = null;
+        }
     }
     
 }
