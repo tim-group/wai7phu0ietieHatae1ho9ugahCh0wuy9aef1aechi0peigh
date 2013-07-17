@@ -40,10 +40,13 @@ public class Receiver {
             public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
                 Long scheduledDeliveryTime = getNumericHeader(properties, SCHEDULED_DELIVERY_HEADER);
                 if (scheduledDeliveryTime != null) {
-                    try {
-                        Thread.sleep(scheduledDeliveryTime - System.currentTimeMillis());
-                    } catch (InterruptedException e) {
-                        throw new IOException("interrupted before able to deliver", e);
+                    long delay = scheduledDeliveryTime - System.currentTimeMillis();
+                    if (delay > 0) {
+                        try {
+                            Thread.sleep(delay);
+                        } catch (InterruptedException e) {
+                            throw new IOException("interrupted before able to deliver", e);
+                        }
                     }
                 }
                 

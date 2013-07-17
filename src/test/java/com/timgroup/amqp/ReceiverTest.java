@@ -77,6 +77,24 @@ public class ReceiverTest extends IntegrationTest {
     }
     
     @Test
+    public void aMessageWithAScheduledDeliveryHeaderForATimeInThePastIsRepeatedImmediately() throws Exception {
+        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        
+        long scheduledDeliveryTime = System.currentTimeMillis() - 1000;
+        long expectedDeliveryTime = System.currentTimeMillis() + 100;
+        BasicProperties propertiesWithScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime)).build();
+        channel.basicPublish(inboundQueueName, "", propertiesWithScheduledDeliveryHeader, EMPTY_BODY);
+        
+        basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        long actualDeliveryTime = System.currentTimeMillis();
+        
+        // fractally awful assertion just to annoy Hamcrest fans
+        if (actualDeliveryTime > expectedDeliveryTime) {
+            assertEquals("message was repeated later than the expected delivery time", expectedDeliveryTime, actualDeliveryTime);
+        }
+    }
+    
+    @Test
     public void aScheduledMessageHasItsOriginalBodyAndMetadata() throws Exception {
         byte[] body = randomise("message").getBytes();
         String routingKey = randomise("routing key");
