@@ -18,7 +18,7 @@ import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.GetResponse;
 import com.timgroup.concurrent.SettableFuture;
 
-public abstract class IntegrationTest {
+public abstract class IntegrationTestBase {
     
     protected static final Random RANDOM = new Random();
     public static final String TEST_BROKER_HOST = "localhost";

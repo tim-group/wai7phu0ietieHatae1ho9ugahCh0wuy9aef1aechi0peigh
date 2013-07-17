@@ -8,7 +8,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class ApplicationTest extends IntegrationTest {
+public class ApplicationTest extends IntegrationTestBase {
     
     @Test
     public void applicationParsesConfigFileAndConnectsToBroker() throws Exception {
