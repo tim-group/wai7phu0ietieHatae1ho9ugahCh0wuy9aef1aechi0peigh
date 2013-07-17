@@ -81,7 +81,6 @@ public class ReceiverTest extends IntegrationTest {
         assertEquals(timestamp, receivedProperties.getTimestamp());
         assertEquals(type, receivedProperties.getType());
         assertEquals(userId, receivedProperties.getUserId());
-        assertEquals(userId, receivedProperties.getUserId());
         assertEquals(appId, receivedProperties.getAppId());
         assertEquals(clusterId, receivedProperties.getClusterId());
     }
