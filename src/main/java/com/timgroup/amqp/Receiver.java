@@ -1,6 +1,7 @@
 package com.timgroup.amqp;
 
 import java.io.IOException;
+import java.util.Map;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -8,6 +9,8 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 public class Receiver {
+    
+    public static final String SCHEDULED_DELIVERY_HEADER = "scheduled_delivery";
     
     private final Channel channel;
     private final String inboundQueueName;
@@ -35,9 +38,29 @@ public class Receiver {
         channel.basicConsume(inboundQueueName, true, new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
+                Long scheduledDeliveryTime = getNumericHeader(properties, SCHEDULED_DELIVERY_HEADER);
+                if (scheduledDeliveryTime != null) {
+                    try {
+                        Thread.sleep(scheduledDeliveryTime - System.currentTimeMillis());
+                    } catch (InterruptedException e) {
+                        throw new IOException("interrupted before able to deliver", e);
+                    }
+                }
+                
                 channel.basicPublish(outboundQueueName, envelope.getRoutingKey(), properties, body);
             }
         });
+    }
+    
+    private static Long getNumericHeader(BasicProperties properties, String headerName) {
+        Map<String, Object> headers = properties.getHeaders();
+        if (headers != null) {
+            Number headerValue = (Number) headers.get(headerName);
+            if (headerValue != null) {
+                return headerValue.longValue();
+            }
+        }
+        return null;
     }
     
 }

@@ -34,7 +34,7 @@ public class ReceiverTest extends IntegrationTest {
         String routingKey = randomise("routing key");
         String contentType = "application/" + randomise("x-content-type");
         String contentEncoding = randomise("content encoding");
-        Map<String, Object> headers = Collections.singletonMap("header name", (Object) LongStringHelper.asLongString(randomise("header value"))); // header values come out as these weird strings
+        Map<String, Object> headers = singleHeader("header name", LongStringHelper.asLongString(randomise("header value"))); // header values come out as these weird strings
         int deliveryMode = 2;
         int priority = RANDOM.nextInt(7);
         String correlationId = randomise("correlation ID");
@@ -84,6 +84,43 @@ public class ReceiverTest extends IntegrationTest {
         assertEquals(userId, receivedProperties.getUserId());
         assertEquals(appId, receivedProperties.getAppId());
         assertEquals(clusterId, receivedProperties.getClusterId());
+    }
+
+    @Test
+    public void aMessageWithoutAScheduledDeliveryHeaderIsRepeatedImmediately() throws Exception {
+        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        
+        long expectedDeliveryTime = System.currentTimeMillis() + 100;
+        channel.basicPublish(inboundQueueName, "", null, EMPTY_BODY);
+        
+        basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        long actualDeliveryTime = System.currentTimeMillis();
+        
+        // fractally awful assertion just to annoy Hamcrest fans
+        if (actualDeliveryTime > expectedDeliveryTime) {
+            assertEquals("message was repeated later than the expected delivery time", expectedDeliveryTime, actualDeliveryTime);
+        }
+    }
+    
+    @Test
+    public void aMessageWithAScheduledDeliveryHeaderIsRepeatedAtTheAppointedTime() throws Exception {
+        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        
+        long scheduledDeliveryTime = System.currentTimeMillis() + 1000;
+        BasicProperties.Builder propertiesBuilder = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime));
+        channel.basicPublish(inboundQueueName, "", propertiesBuilder.build(), EMPTY_BODY);
+        
+        basicConsumeOnce(channel, outboundQueueName, 2, TimeUnit.SECONDS);
+        long actualDeliveryTime = System.currentTimeMillis();
+        
+        // fractally awful assertion just to annoy Hamcrest fans
+        if (actualDeliveryTime < scheduledDeliveryTime) {
+            assertEquals("message was repeated before scheduled delivery time", scheduledDeliveryTime, actualDeliveryTime);
+        }
+    }
+    
+    private Map<String, Object> singleHeader(String headerName, Object headerValue) {
+        return Collections.singletonMap(headerName, headerValue);
     }
     
 }
