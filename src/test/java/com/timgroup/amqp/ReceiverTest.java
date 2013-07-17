@@ -32,59 +32,16 @@ public class ReceiverTest extends IntegrationTest {
     @Test
     public void aRepeatedMessageHasItsOriginalMetadata() throws Exception {
         String routingKey = randomise("routing key");
-        String contentType = "application/" + randomise("x-content-type");
-        String contentEncoding = randomise("content encoding");
-        Map<String, Object> headers = singleHeader("header name", LongStringHelper.asLongString(randomise("header value"))); // header values come out as these weird strings
-        int deliveryMode = 2;
-        int priority = RANDOM.nextInt(7);
-        String correlationId = randomise("correlation ID");
-        String replyTo = randomise("reply to");
-        String expiration = Integer.toString(9000 + RANDOM.nextInt(1000)); // is an integer in string's clothing
-        String messageId = randomise("message ID");
-        Date timestamp = new Date(1226534400000L + (RANDOM.nextInt(86400) * 1000)); // only preserved with second precision
-        String type = randomise("type");
-        String userId = TEST_BROKER_USERNAME; // needs to match, otherwise rejected
-        String appId = randomise("app ID");
-        String clusterId = randomise("cluster ID");
-        
-        BasicProperties.Builder propertiesBuilder = new BasicProperties.Builder().contentType(contentType)
-                                                                                 .contentEncoding(contentEncoding)
-                                                                                 .headers(headers)
-                                                                                 .deliveryMode(deliveryMode)
-                                                                                 .priority(priority)
-                                                                                 .correlationId(correlationId)
-                                                                                 .replyTo(replyTo)
-                                                                                 .expiration(expiration)
-                                                                                 .messageId(messageId)
-                                                                                 .timestamp(timestamp)
-                                                                                 .type(type)
-                                                                                 .userId(userId)
-                                                                                 .appId(appId)
-                                                                                 .clusterId(clusterId);
-        
-        channel.basicPublish(inboundQueueName, routingKey, propertiesBuilder.build(), EMPTY_BODY);
+        BasicProperties properties = randomiseProperties();
+        channel.basicPublish(inboundQueueName, routingKey, properties, EMPTY_BODY);
         
         new Receiver(channel, inboundQueueName, outboundQueueName).start();
         
         GetResponse response = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
         assertEquals(routingKey, response.getEnvelope().getRoutingKey());
-        BasicProperties receivedProperties = response.getProps();
-        assertEquals(contentType, receivedProperties.getContentType());
-        assertEquals(contentEncoding, receivedProperties.getContentEncoding());
-        assertEquals(headers, receivedProperties.getHeaders());
-        assertEquals((Object) deliveryMode, receivedProperties.getDeliveryMode());
-        assertEquals((Object) priority, receivedProperties.getPriority());
-        assertEquals(correlationId, receivedProperties.getCorrelationId());
-        assertEquals(replyTo, receivedProperties.getReplyTo());
-        assertEquals(expiration, receivedProperties.getExpiration());
-        assertEquals(messageId, receivedProperties.getMessageId());
-        assertEquals(timestamp, receivedProperties.getTimestamp());
-        assertEquals(type, receivedProperties.getType());
-        assertEquals(userId, receivedProperties.getUserId());
-        assertEquals(appId, receivedProperties.getAppId());
-        assertEquals(clusterId, receivedProperties.getClusterId());
+        assertPropertiesEquals(properties, response.getProps());
     }
-
+    
     @Test
     public void aMessageWithoutAScheduledDeliveryHeaderIsRepeatedImmediately() throws Exception {
         new Receiver(channel, inboundQueueName, outboundQueueName).start();
@@ -106,8 +63,8 @@ public class ReceiverTest extends IntegrationTest {
         new Receiver(channel, inboundQueueName, outboundQueueName).start();
         
         long scheduledDeliveryTime = System.currentTimeMillis() + 1000;
-        BasicProperties.Builder propertiesBuilder = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime));
-        channel.basicPublish(inboundQueueName, "", propertiesBuilder.build(), EMPTY_BODY);
+        BasicProperties propertiesWithScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime)).build();
+        channel.basicPublish(inboundQueueName, "", propertiesWithScheduledDeliveryHeader, EMPTY_BODY);
         
         basicConsumeOnce(channel, outboundQueueName, 2, TimeUnit.SECONDS);
         long actualDeliveryTime = System.currentTimeMillis();
@@ -118,8 +75,45 @@ public class ReceiverTest extends IntegrationTest {
         }
     }
     
+    private BasicProperties randomiseProperties() {
+        BasicProperties.Builder propertiesBuilder = new BasicProperties.Builder().contentType("application/" + randomise("x-content-type"))
+                                                                                 .contentEncoding(randomise("content encoding"))
+                                                                                 .headers(singleHeader("header name", LongStringHelper.asLongString(randomise("header value")))) // header values come out as these weird strings
+                                                                                 .deliveryMode(2)
+                                                                                 .priority(RANDOM.nextInt(7))
+                                                                                 .correlationId(randomise("correlation ID"))
+                                                                                 .replyTo(randomise("reply to"))
+                                                                                 .expiration(Integer.toString(9000 + RANDOM.nextInt(1000))) // is an integer in string's clothing
+                                                                                 .messageId(randomise("message ID"))
+                                                                                 .timestamp(new Date(1226534400000L + (RANDOM.nextInt(86400) * 1000))) // only preserved with second precision
+                                                                                 .type(randomise("type"))
+                                                                                 .userId(TEST_BROKER_USERNAME) // needs to match, otherwise rejected
+                                                                                 .appId(randomise("app ID"))
+                                                                                 .clusterId(randomise("cluster ID"));
+        
+        BasicProperties properties = propertiesBuilder.build();
+        return properties;
+    }
+    
     private Map<String, Object> singleHeader(String headerName, Object headerValue) {
         return Collections.singletonMap(headerName, headerValue);
+    }
+    
+    private void assertPropertiesEquals(BasicProperties expectedProperties, BasicProperties actualProperties) {
+        assertEquals(expectedProperties.getContentType(), actualProperties.getContentType());
+        assertEquals(expectedProperties.getContentEncoding(), actualProperties.getContentEncoding());
+        assertEquals(expectedProperties.getHeaders(), actualProperties.getHeaders());
+        assertEquals(expectedProperties.getDeliveryMode(), actualProperties.getDeliveryMode());
+        assertEquals(expectedProperties.getPriority(), actualProperties.getPriority());
+        assertEquals(expectedProperties.getCorrelationId(), actualProperties.getCorrelationId());
+        assertEquals(expectedProperties.getReplyTo(), actualProperties.getReplyTo());
+        assertEquals(expectedProperties.getExpiration(), actualProperties.getExpiration());
+        assertEquals(expectedProperties.getMessageId(), actualProperties.getMessageId());
+        assertEquals(expectedProperties.getTimestamp(), actualProperties.getTimestamp());
+        assertEquals(expectedProperties.getType(), actualProperties.getType());
+        assertEquals(expectedProperties.getUserId(), actualProperties.getUserId());
+        assertEquals(expectedProperties.getAppId(), actualProperties.getAppId());
+        assertEquals(expectedProperties.getClusterId(), actualProperties.getClusterId());
     }
     
 }
