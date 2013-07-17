@@ -20,7 +20,7 @@ import com.timgroup.concurrent.SettableFuture;
 
 public abstract class IntegrationTest {
     
-    private static final Random RANDOM = new Random();
+    protected static final Random RANDOM = new Random();
     public static final String TEST_BROKER_HOST = "localhost";
     public static final String TEST_BROKER_URI = "amqp://" + TEST_BROKER_HOST;
     public static final String TEST_BROKER_USERNAME = "guest"; // that's who you are if you don't use an explicit name, apparently
