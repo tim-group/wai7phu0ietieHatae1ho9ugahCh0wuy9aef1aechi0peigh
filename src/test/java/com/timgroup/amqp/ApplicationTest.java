@@ -25,8 +25,11 @@ public class ApplicationTest extends IntegrationTestBase {
         try {
             Receiver receiver = application.getReceiver();
             assertEquals(TEST_BROKER_HOST, receiver.getChannel().getConnection().getAddress().getHostName());
-            assertEquals(inboundQueueName, receiver.getInboundQueueName());
-            assertEquals(outboundQueueName, receiver.getOutboundQueueName());
+            assertEquals(inboundQueueName, receiver.getQueueName());
+            
+            Transmitter transmitter = application.getTransmitter();
+            assertEquals(TEST_BROKER_HOST, transmitter.getChannel().getConnection().getAddress().getHostName());
+            assertEquals(outboundQueueName, transmitter.getQueueName());
         } finally {
             application.close();
         }

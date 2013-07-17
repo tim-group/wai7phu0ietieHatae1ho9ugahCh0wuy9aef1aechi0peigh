@@ -16,7 +16,7 @@ public class ScheduledRepeatTest extends RepeatTestBase {
     
     @Test
     public void aMessageWithAScheduledDeliveryHeaderIsRepeatedAtTheAppointedTime() throws Exception {
-        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        newTransceiver().start();
         
         long scheduledDeliveryTime = System.currentTimeMillis() + 1000;
         BasicProperties propertiesWithScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime)).build();
@@ -38,7 +38,7 @@ public class ScheduledRepeatTest extends RepeatTestBase {
         BasicProperties propertiesWithScheduledDeliveryHeader = withHeader(properties, Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime);
         channel.basicPublish(inboundQueueName, routingKey, propertiesWithScheduledDeliveryHeader, body);
         
-        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        newTransceiver().start();
         
         GetResponse response = basicConsumeOnce(channel, outboundQueueName, 2, TimeUnit.SECONDS);
         assertArrayEquals(body, response.getBody());
@@ -48,7 +48,7 @@ public class ScheduledRepeatTest extends RepeatTestBase {
     
     @Test
     public void aScheduledMessageDoesNotBlockFollowingMessages() throws Exception {
-        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        newTransceiver().start();
         
         long farScheduledDeliveryTime = System.currentTimeMillis() + 1000;
         BasicProperties propertiesWithFarScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, farScheduledDeliveryTime)).build();

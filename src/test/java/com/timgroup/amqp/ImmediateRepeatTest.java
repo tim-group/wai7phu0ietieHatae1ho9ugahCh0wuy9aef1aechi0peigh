@@ -17,7 +17,7 @@ public class ImmediateRepeatTest extends RepeatTestBase {
         byte[] body = randomise("message").getBytes();
         channel.basicPublish(inboundQueueName, "", null, body);
         
-        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        newTransceiver().start();
         
         GetResponse response = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
         assertArrayEquals(body, response.getBody());
@@ -29,7 +29,7 @@ public class ImmediateRepeatTest extends RepeatTestBase {
         BasicProperties properties = randomiseProperties();
         channel.basicPublish(inboundQueueName, routingKey, properties, EMPTY_BODY);
         
-        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        newTransceiver().start();
         
         GetResponse response = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
         assertEquals(routingKey, response.getEnvelope().getRoutingKey());
@@ -38,7 +38,7 @@ public class ImmediateRepeatTest extends RepeatTestBase {
     
     @Test
     public void aMessageWithoutAScheduledDeliveryHeaderIsRepeatedImmediately() throws Exception {
-        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        newTransceiver().start();
         
         long expectedDeliveryTime = System.currentTimeMillis();
         channel.basicPublish(inboundQueueName, "", null, EMPTY_BODY);
@@ -51,7 +51,7 @@ public class ImmediateRepeatTest extends RepeatTestBase {
     
     @Test
     public void aMessageWithAScheduledDeliveryHeaderForATimeInThePastIsRepeatedImmediately() throws Exception {
-        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        newTransceiver().start();
         
         long scheduledDeliveryTime = System.currentTimeMillis() - 1000;
         long expectedDeliveryTime = System.currentTimeMillis();

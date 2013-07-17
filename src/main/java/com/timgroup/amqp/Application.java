@@ -27,9 +27,10 @@ public class Application implements Closeable {
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
         
-        Receiver receiver = new Receiver(channel, inboundQueueName, outboundQueueName);
+        Transmitter transmitter = new Transmitter(channel, outboundQueueName);
+        Receiver receiver = new Receiver(channel, inboundQueueName, transmitter);
         
-        return new Application(connection, receiver);
+        return new Application(connection, receiver, transmitter);
     }
     
     private static Properties loadProperties(String configFilePath) throws IOException {
@@ -42,14 +43,20 @@ public class Application implements Closeable {
     
     private final Connection connection;
     private final Receiver receiver;
+    private final Transmitter transmitter;
     
-    public Application(Connection connection, Receiver receiver) {
+    public Application(Connection connection, Receiver receiver, Transmitter transmitter) {
         this.connection = connection;
         this.receiver = receiver;
+        this.transmitter = transmitter;
     }
     
     public Receiver getReceiver() {
         return receiver;
+    }
+    
+    public Transmitter getTransmitter() {
+        return transmitter;
     }
     
     private void start() throws IOException {
@@ -59,7 +66,7 @@ public class Application implements Closeable {
     @Override
     public void close() throws IOException {
         try {
-            receiver.close();
+            transmitter.close();
         } finally {
             connection.close();
         }

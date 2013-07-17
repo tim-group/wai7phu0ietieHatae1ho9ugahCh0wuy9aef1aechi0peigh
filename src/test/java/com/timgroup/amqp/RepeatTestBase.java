@@ -13,6 +13,10 @@ public abstract class RepeatTestBase extends IntegrationTestBase {
     
     protected static final byte[] EMPTY_BODY = {};
     
+    protected Receiver newTransceiver() {
+        return new Receiver(channel, inboundQueueName, new Transmitter(channel, outboundQueueName));
+    }
+    
     protected void assertDeliveredSoonAfter(String message, long expectedDeliveryTime, long actualDeliveryTime) {
         if (actualDeliveryTime < expectedDeliveryTime) {
             assertEquals(message + " message was repeated before scheduled delivery time", expectedDeliveryTime, actualDeliveryTime);
