@@ -47,16 +47,13 @@ public class ReceiverTest extends IntegrationTest {
     public void aMessageWithoutAScheduledDeliveryHeaderIsRepeatedImmediately() throws Exception {
         new Receiver(channel, inboundQueueName, outboundQueueName).start();
         
-        long expectedDeliveryTime = System.currentTimeMillis() + 100;
+        long expectedDeliveryTime = System.currentTimeMillis();
         channel.basicPublish(inboundQueueName, "", null, EMPTY_BODY);
         
         basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
         long actualDeliveryTime = System.currentTimeMillis();
         
-        // fractally awful assertion just to annoy Hamcrest fans
-        if (actualDeliveryTime > expectedDeliveryTime) {
-            assertEquals("message was repeated later than the expected delivery time", expectedDeliveryTime, actualDeliveryTime);
-        }
+        assertDeliveredSoonAfter("the", expectedDeliveryTime, actualDeliveryTime);
     }
     
     @Test
@@ -70,10 +67,7 @@ public class ReceiverTest extends IntegrationTest {
         basicConsumeOnce(channel, outboundQueueName, 2, TimeUnit.SECONDS);
         long actualDeliveryTime = System.currentTimeMillis();
         
-        // fractally awful assertion just to annoy Hamcrest fans
-        if (actualDeliveryTime < scheduledDeliveryTime) {
-            assertEquals("message was repeated before scheduled delivery time", scheduledDeliveryTime, actualDeliveryTime);
-        }
+        assertDeliveredSoonAfter("the", scheduledDeliveryTime, actualDeliveryTime);
     }
     
     @Test
@@ -81,17 +75,14 @@ public class ReceiverTest extends IntegrationTest {
         new Receiver(channel, inboundQueueName, outboundQueueName).start();
         
         long scheduledDeliveryTime = System.currentTimeMillis() - 1000;
-        long expectedDeliveryTime = System.currentTimeMillis() + 100;
+        long expectedDeliveryTime = System.currentTimeMillis();
         BasicProperties propertiesWithScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime)).build();
         channel.basicPublish(inboundQueueName, "", propertiesWithScheduledDeliveryHeader, EMPTY_BODY);
         
         basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
         long actualDeliveryTime = System.currentTimeMillis();
         
-        // fractally awful assertion just to annoy Hamcrest fans
-        if (actualDeliveryTime > expectedDeliveryTime) {
-            assertEquals("message was repeated later than the expected delivery time", expectedDeliveryTime, actualDeliveryTime);
-        }
+        assertDeliveredSoonAfter("the", expectedDeliveryTime, actualDeliveryTime);
     }
     
     @Test
@@ -126,29 +117,32 @@ public class ReceiverTest extends IntegrationTest {
         byte[] secondMessageBody = randomise("message").getBytes();
         channel.basicPublish(inboundQueueName, "", propertiesWithNearScheduledDeliveryHeader, secondMessageBody);
         
-        long expectedImmediateDeliveryTime = System.currentTimeMillis() + 100;
+        long immediateDeliveryTime = System.currentTimeMillis();
         byte[] thirdMessageBody = randomise("message").getBytes();
         channel.basicPublish(inboundQueueName, "", null, thirdMessageBody);
         
         GetResponse firstResponse = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
         long firstActualDeliveryTime = System.currentTimeMillis();
         assertArrayEquals(thirdMessageBody, firstResponse.getBody());
-        if (firstActualDeliveryTime > expectedImmediateDeliveryTime) {
-            assertEquals("first message was repeated later than the expected delivery time", expectedImmediateDeliveryTime, firstActualDeliveryTime);
-        }
+        assertDeliveredSoonAfter("third", immediateDeliveryTime, firstActualDeliveryTime);
         
         GetResponse secondResponse = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
         long secondActualDeliveryTime = System.currentTimeMillis();
         assertArrayEquals(secondMessageBody, secondResponse.getBody());
-        if (secondActualDeliveryTime < nearScheduledDeliveryTime) {
-            assertEquals("second message was repeated before scheduled delivery time", nearScheduledDeliveryTime, secondActualDeliveryTime);
-        }
+        assertDeliveredSoonAfter("second", nearScheduledDeliveryTime, secondActualDeliveryTime);
         
         GetResponse thirdResponse = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
         long thirdActualDeliveryTime = System.currentTimeMillis();
         assertArrayEquals(firstMessageBody, thirdResponse.getBody());
-        if (thirdActualDeliveryTime < farScheduledDeliveryTime) {
-            assertEquals("third message was repeated before scheduled delivery time", farScheduledDeliveryTime, thirdActualDeliveryTime);
+        assertDeliveredSoonAfter("first", farScheduledDeliveryTime, thirdActualDeliveryTime);
+    }
+    
+    private void assertDeliveredSoonAfter(String message, long expectedDeliveryTime, long actualDeliveryTime) {
+        if (actualDeliveryTime < expectedDeliveryTime) {
+            assertEquals(message + " message was repeated before scheduled delivery time", expectedDeliveryTime, actualDeliveryTime);
+        }
+        if (actualDeliveryTime > expectedDeliveryTime + 100) {
+            assertEquals(message + " message was repeated later than the scheduled delivery time", expectedDeliveryTime, actualDeliveryTime);
         }
     }
     
