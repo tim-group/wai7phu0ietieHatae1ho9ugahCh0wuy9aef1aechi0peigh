@@ -62,20 +62,8 @@ public abstract class IntegrationTestBase {
     
     @After
     public void tearDown() {
-        // neither channel or connection are Closeable, yay
-        if (channel != null) {
-            try {
-                channel.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
         if (connection != null) {
-            try {
-                connection.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            Application.closeQuietly(Application.closeable(connection));
         }
     }
     

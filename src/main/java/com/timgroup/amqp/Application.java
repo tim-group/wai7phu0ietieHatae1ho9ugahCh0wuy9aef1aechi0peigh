@@ -67,15 +67,24 @@ public class Application implements Closeable {
     public void close() throws IOException {
         closeQuietly(receiver);
         closeQuietly(transmitter);
-        connection.close();
+        closeQuietly(closeable(connection));
     }
     
-    private void closeQuietly(Closeable closeable) {
+    public static void closeQuietly(Closeable closeable) {
         try {
             closeable.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    
+    public static Closeable closeable(final Connection connection) {
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                connection.close();
+            }
+        };
     }
     
 }
