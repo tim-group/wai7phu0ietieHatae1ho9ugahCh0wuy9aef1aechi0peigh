@@ -35,7 +35,7 @@ public class Receiver {
         channel.basicConsume(inboundQueueName, true, new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
-                channel.basicPublish(outboundQueueName, "", null, body);
+                channel.basicPublish(outboundQueueName, envelope.getRoutingKey(), properties, body);
             }
         });
     }
