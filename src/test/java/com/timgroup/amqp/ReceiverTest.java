@@ -19,7 +19,7 @@ public class ReceiverTest extends IntegrationTest {
     private static final byte[] EMPTY_BODY = {};
     
     @Test
-    public void aMessageSentToTheInboundQueueIsMovedToTheOutboundQueue() throws Exception {
+    public void aMessageSentToTheInboundQueueIsRepeatedOnTheOutboundQueue() throws Exception {
         byte[] body = randomise("message").getBytes();
         channel.basicPublish(inboundQueueName, "", null, body);
         
@@ -30,22 +30,22 @@ public class ReceiverTest extends IntegrationTest {
     }
     
     @Test
-    public void messageMetadataIsPreserved() throws Exception {
-        String routingKey = "routing key";
-        String contentType = "application/x-content-type";
-        String contentEncoding = "content encoding";
-        Map<String, Object> headers = Collections.singletonMap("header name", (Object) LongStringHelper.asLongString("header value")); // header values come out as these weird strings
+    public void aRepeatedMessageHasItsOriginalMetadata() throws Exception {
+        String routingKey = randomise("routing key");
+        String contentType = "application/" + randomise("x-content-type");
+        String contentEncoding = randomise("content encoding");
+        Map<String, Object> headers = Collections.singletonMap("header name", (Object) LongStringHelper.asLongString(randomise("header value"))); // header values come out as these weird strings
         int deliveryMode = 2;
-        int priority = 7;
-        String correlationId = "correlation ID";
-        String replyTo = "reply to";
-        String expiration = "9001"; // is an integer in string's clothing
-        String messageId = "message ID";
-        Date timestamp = new Date(1226592681000L);
-        String type = "type";
+        int priority = RANDOM.nextInt(7);
+        String correlationId = randomise("correlation ID");
+        String replyTo = randomise("reply to");
+        String expiration = Integer.toString(9000 + RANDOM.nextInt(1000)); // is an integer in string's clothing
+        String messageId = randomise("message ID");
+        Date timestamp = new Date(1226534400000L + (RANDOM.nextInt(86400) * 1000)); // only preserved with second precision
+        String type = randomise("type");
         String userId = TEST_BROKER_USERNAME; // needs to match, otherwise rejected
-        String appId = "app ID";
-        String clusterId = "cluster ID";
+        String appId = randomise("app ID");
+        String clusterId = randomise("cluster ID");
         
         BasicProperties.Builder propertiesBuilder = new BasicProperties.Builder().contentType(contentType)
                                                                                  .contentEncoding(contentEncoding)
