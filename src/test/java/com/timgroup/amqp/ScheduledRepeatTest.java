@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -11,6 +12,7 @@ import com.rabbitmq.client.GetResponse;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class ScheduledRepeatTest extends RepeatTestBase {
     
@@ -78,6 +80,12 @@ public class ScheduledRepeatTest extends RepeatTestBase {
         long thirdActualDeliveryTime = System.currentTimeMillis();
         assertArrayEquals(firstMessageBody, thirdResponse.getBody());
         assertDeliveredSoonAfter("first", farScheduledDeliveryTime, thirdActualDeliveryTime);
+    }
+    
+    @Ignore("pending") // TODO
+    @Test
+    public void aScheduledMessageIsNotAcknowledgedUntilAfterItHasBeenRepeated() throws Exception {
+        fail("not yet implemented, and not even sure how to test it");
     }
     
     private BasicProperties withHeader(BasicProperties properties, String headerName, Object headerValue) {
