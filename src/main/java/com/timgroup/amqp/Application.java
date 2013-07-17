@@ -58,7 +58,11 @@ public class Application implements Closeable {
     
     @Override
     public void close() throws IOException {
-        connection.close();
+        try {
+            receiver.close();
+        } finally {
+            connection.close();
+        }
     }
     
 }

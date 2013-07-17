@@ -112,6 +112,46 @@ public class ReceiverTest extends IntegrationTest {
         assertPropertiesEquals(propertiesWithScheduledDeliveryHeader, response.getProps());
     }
     
+    @Test
+    public void aScheduledMessageDoesNotBlockFollowingMessages() throws Exception {
+        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        
+        long farScheduledDeliveryTime = System.currentTimeMillis() + 1000;
+        BasicProperties propertiesWithFarScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, farScheduledDeliveryTime)).build();
+        byte[] firstMessageBody = randomise("message").getBytes();
+        channel.basicPublish(inboundQueueName, "", propertiesWithFarScheduledDeliveryHeader, firstMessageBody);
+        
+        long nearScheduledDeliveryTime = System.currentTimeMillis() + 500;
+        BasicProperties propertiesWithNearScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, nearScheduledDeliveryTime)).build();
+        byte[] secondMessageBody = randomise("message").getBytes();
+        channel.basicPublish(inboundQueueName, "", propertiesWithNearScheduledDeliveryHeader, secondMessageBody);
+        
+        long expectedImmediateDeliveryTime = System.currentTimeMillis() + 100;
+        byte[] thirdMessageBody = randomise("message").getBytes();
+        channel.basicPublish(inboundQueueName, "", null, thirdMessageBody);
+        
+        GetResponse firstResponse = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        long firstActualDeliveryTime = System.currentTimeMillis();
+        assertArrayEquals(thirdMessageBody, firstResponse.getBody());
+        if (firstActualDeliveryTime > expectedImmediateDeliveryTime) {
+            assertEquals("first message was repeated later than the expected delivery time", expectedImmediateDeliveryTime, firstActualDeliveryTime);
+        }
+        
+        GetResponse secondResponse = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        long secondActualDeliveryTime = System.currentTimeMillis();
+        assertArrayEquals(secondMessageBody, secondResponse.getBody());
+        if (secondActualDeliveryTime < nearScheduledDeliveryTime) {
+            assertEquals("second message was repeated before scheduled delivery time", nearScheduledDeliveryTime, secondActualDeliveryTime);
+        }
+        
+        GetResponse thirdResponse = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        long thirdActualDeliveryTime = System.currentTimeMillis();
+        assertArrayEquals(firstMessageBody, thirdResponse.getBody());
+        if (thirdActualDeliveryTime < farScheduledDeliveryTime) {
+            assertEquals("third message was repeated before scheduled delivery time", farScheduledDeliveryTime, thirdActualDeliveryTime);
+        }
+    }
+    
     private BasicProperties withHeader(BasicProperties properties, String headerName, Object headerValue) {
         Map<String, Object> headers = new HashMap<String, Object>(properties.getHeaders());
         headers.put(headerName, headerValue);
