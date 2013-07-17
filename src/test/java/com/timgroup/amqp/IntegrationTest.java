@@ -66,14 +66,14 @@ public abstract class IntegrationTest {
         if (channel != null) {
             try {
                 channel.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
         if (connection != null) {
             try {
                 connection.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
