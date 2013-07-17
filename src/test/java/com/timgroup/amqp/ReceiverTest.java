@@ -2,6 +2,7 @@ package com.timgroup.amqp;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -73,6 +74,30 @@ public class ReceiverTest extends IntegrationTest {
         if (actualDeliveryTime < scheduledDeliveryTime) {
             assertEquals("message was repeated before scheduled delivery time", scheduledDeliveryTime, actualDeliveryTime);
         }
+    }
+    
+    @Test
+    public void aScheduledMessageHasItsOriginalBodyAndMetadata() throws Exception {
+        byte[] body = randomise("message").getBytes();
+        String routingKey = randomise("routing key");
+        BasicProperties properties = randomiseProperties();
+        
+        long scheduledDeliveryTime = System.currentTimeMillis() + 1000;
+        BasicProperties propertiesWithScheduledDeliveryHeader = withHeader(properties, Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime);
+        channel.basicPublish(inboundQueueName, routingKey, propertiesWithScheduledDeliveryHeader, body);
+        
+        new Receiver(channel, inboundQueueName, outboundQueueName).start();
+        
+        GetResponse response = basicConsumeOnce(channel, outboundQueueName, 2, TimeUnit.SECONDS);
+        assertArrayEquals(body, response.getBody());
+        assertEquals(routingKey, response.getEnvelope().getRoutingKey());
+        assertPropertiesEquals(propertiesWithScheduledDeliveryHeader, response.getProps());
+    }
+    
+    private BasicProperties withHeader(BasicProperties properties, String headerName, Object headerValue) {
+        Map<String, Object> headers = new HashMap<String, Object>(properties.getHeaders());
+        headers.put(headerName, headerValue);
+        return properties.builder().headers(headers).build();
     }
     
     private BasicProperties randomiseProperties() {
