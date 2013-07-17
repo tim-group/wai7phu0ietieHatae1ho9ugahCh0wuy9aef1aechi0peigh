@@ -37,12 +37,7 @@ public class Receiver implements Closeable {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
                 Long scheduledDeliveryTime = getNumericHeader(properties, SCHEDULED_DELIVERY_HEADER);
-                long delay;
-                if (scheduledDeliveryTime != null) {
-                    delay = scheduledDeliveryTime - System.currentTimeMillis();
-                } else {
-                    delay = 0;
-                }
+                long delay = scheduledDeliveryTime != null ? scheduledDeliveryTime - System.currentTimeMillis() : 0;
                 
                 transmitter.transmit(envelope.getRoutingKey(), properties, body, delay);
             }
