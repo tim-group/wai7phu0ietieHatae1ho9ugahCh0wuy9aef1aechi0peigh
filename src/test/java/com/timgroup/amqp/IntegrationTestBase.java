@@ -49,7 +49,7 @@ public abstract class IntegrationTestBase {
     private static void configureSimpleQueue(Channel channel, String queueName) throws IOException {
         // easiest way to have a one-to-one exchange-to-queue setup is to use a fanout to one destination
         boolean durable = true; // write the messages to disk
-        boolean autoDelete = false; // but don't keep the queues over a server restart
+        boolean autoDelete = false; // and don't delete the queues just because they have no consumers
         channel.exchangeDeclare(queueName, "fanout", durable, autoDelete, null);
         channel.queueDeclare(queueName, durable, false, autoDelete, null);
         // fanout exchanges ignore the routing key, so use the empty string
@@ -58,8 +58,21 @@ public abstract class IntegrationTestBase {
     
     @After
     public void tearDown() {
+        deleteQueueQuietly(inboundQueueName);
+        deleteQueueQuietly(outboundQueueName);
         if (connection != null) {
             Application.closeQuietly(Application.closeable(connection));
+        }
+    }
+    
+    private void deleteQueueQuietly(String queueName) {
+        if (queueName != null) {
+            try {
+                channel.queueDelete(queueName);
+                channel.exchangeDelete(inboundQueueName);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
     
