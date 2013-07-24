@@ -2,21 +2,17 @@ package com.timgroup.amqp;
 
 import java.io.IOException;
 import java.util.Random;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.junit.After;
 import org.junit.Before;
 
-import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.GetResponse;
-import com.timgroup.concurrent.SettableFuture;
+import com.rabbitmq.client.QueueingConsumer;
+import com.rabbitmq.client.QueueingConsumer.Delivery;
 
 public abstract class IntegrationTestBase {
     
@@ -67,20 +63,12 @@ public abstract class IntegrationTestBase {
         }
     }
     
-    protected GetResponse basicConsumeOnce(final Channel channel, String queue, int timeout, TimeUnit unit) throws IOException,
-            InterruptedException, ExecutionException, TimeoutException {
-        final SettableFuture<GetResponse> future = new SettableFuture<GetResponse>();
-        
-        channel.basicConsume(queue, true, new DefaultConsumer(channel) {
-            @Override
-            public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
-                GetResponse response = new GetResponse(envelope, properties, body, -1);
-                future.set(response);
-                channel.basicCancel(consumerTag);
-            }
-        });
-        
-        return future.get(timeout, unit);
+    protected GetResponse basicConsumeOnce(final Channel channel, String queue, int timeout, TimeUnit unit) throws IOException, InterruptedException {
+        QueueingConsumer consumer = new QueueingConsumer(channel);
+        channel.basicConsume(queue, true, consumer);
+        Delivery delivery = consumer.nextDelivery(unit.toMillis(timeout));
+        channel.basicCancel(consumer.getConsumerTag());
+        return new GetResponse(delivery.getEnvelope(), delivery.getProperties(), delivery.getBody(), 1);
     }
     
 }
