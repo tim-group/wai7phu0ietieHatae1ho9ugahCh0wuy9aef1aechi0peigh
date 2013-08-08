@@ -14,7 +14,7 @@ public abstract class RepeatTestBase extends IntegrationTestBase {
     protected static final byte[] EMPTY_BODY = {};
     
     protected Receiver newTransceiver() {
-        return new Receiver(channel, inboundQueueName, new Transmitter(channel, outboundQueueName));
+        return new Receiver(appChannel, inboundQueueName, new Transmitter(appChannel, outboundQueueName));
     }
     
     protected void assertDeliveredSoonAfter(String message, long expectedDeliveryTime, long actualDeliveryTime) {

@@ -21,8 +21,10 @@ public abstract class IntegrationTestBase {
     public static final String TEST_BROKER_URI = "amqp://" + TEST_BROKER_HOST;
     public static final String TEST_BROKER_USERNAME = "guest"; // that's who you are if you don't use an explicit name, apparently
     
-    protected Connection connection;
-    protected Channel channel;
+    protected Connection testConnection;
+    protected Channel testChannel;
+    protected Connection appConnection;
+    protected Channel appChannel;
     protected String inboundQueueName;
     protected String outboundQueueName;
     
@@ -30,15 +32,17 @@ public abstract class IntegrationTestBase {
     public void setUp() throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setUri(TEST_BROKER_URI);
-        connection = factory.newConnection();
-        channel = connection.createChannel();
+        testConnection = factory.newConnection();
+        testChannel = testConnection.createChannel();
         inboundQueueName = configureSimpleQueue("inbound");
         outboundQueueName = configureSimpleQueue("outbound");
+        appConnection = factory.newConnection();
+        appChannel = appConnection.createChannel();
     }
     
     private String configureSimpleQueue(String prefix) throws IOException {
         String queueName = randomise(prefix);
-        configureSimpleQueue(channel, queueName);
+        configureSimpleQueue(testChannel, queueName);
         return queueName;
     }
     
@@ -60,16 +64,19 @@ public abstract class IntegrationTestBase {
     public void tearDown() {
         deleteQueueQuietly(inboundQueueName);
         deleteQueueQuietly(outboundQueueName);
-        if (connection != null) {
-            Application.closeQuietly(Application.closeable(connection));
+        if (testConnection != null) {
+            Application.closeQuietly(Application.closeable(testConnection));
+        }
+        if (appConnection != null) {
+            Application.closeQuietly(Application.closeable(appConnection));
         }
     }
     
     private void deleteQueueQuietly(String queueName) {
         if (queueName != null) {
             try {
-                channel.queueDelete(queueName);
-                channel.exchangeDelete(inboundQueueName);
+                testChannel.queueDelete(queueName);
+                testChannel.exchangeDelete(inboundQueueName);
             } catch (IOException e) {
                 e.printStackTrace();
             }

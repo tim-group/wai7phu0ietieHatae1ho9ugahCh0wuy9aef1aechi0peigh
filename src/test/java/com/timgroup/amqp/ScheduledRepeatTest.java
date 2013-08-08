@@ -22,9 +22,9 @@ public class ScheduledRepeatTest extends RepeatTestBase {
         
         long scheduledDeliveryTime = System.currentTimeMillis() + 1000;
         BasicProperties propertiesWithScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime)).build();
-        channel.basicPublish(inboundQueueName, "", propertiesWithScheduledDeliveryHeader, EMPTY_BODY);
+        testChannel.basicPublish(inboundQueueName, "", propertiesWithScheduledDeliveryHeader, EMPTY_BODY);
         
-        basicConsumeOnce(channel, outboundQueueName, 2, TimeUnit.SECONDS);
+        basicConsumeOnce(testChannel, outboundQueueName, 2, TimeUnit.SECONDS);
         long actualDeliveryTime = System.currentTimeMillis();
         
         assertDeliveredSoonAfter("the", scheduledDeliveryTime, actualDeliveryTime);
@@ -38,11 +38,11 @@ public class ScheduledRepeatTest extends RepeatTestBase {
         
         long scheduledDeliveryTime = System.currentTimeMillis() + 1000;
         BasicProperties propertiesWithScheduledDeliveryHeader = withHeader(properties, Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime);
-        channel.basicPublish(inboundQueueName, routingKey, propertiesWithScheduledDeliveryHeader, body);
+        testChannel.basicPublish(inboundQueueName, routingKey, propertiesWithScheduledDeliveryHeader, body);
         
         newTransceiver().start();
         
-        GetResponse response = basicConsumeOnce(channel, outboundQueueName, 2, TimeUnit.SECONDS);
+        GetResponse response = basicConsumeOnce(testChannel, outboundQueueName, 2, TimeUnit.SECONDS);
         assertArrayEquals(body, response.getBody());
         assertEquals(routingKey, response.getEnvelope().getRoutingKey());
         assertPropertiesEquals(propertiesWithScheduledDeliveryHeader, response.getProps());
@@ -55,28 +55,28 @@ public class ScheduledRepeatTest extends RepeatTestBase {
         long farScheduledDeliveryTime = System.currentTimeMillis() + 1000;
         BasicProperties propertiesWithFarScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, farScheduledDeliveryTime)).build();
         byte[] firstMessageBody = randomise("message").getBytes();
-        channel.basicPublish(inboundQueueName, "", propertiesWithFarScheduledDeliveryHeader, firstMessageBody);
+        testChannel.basicPublish(inboundQueueName, "", propertiesWithFarScheduledDeliveryHeader, firstMessageBody);
         
         long nearScheduledDeliveryTime = System.currentTimeMillis() + 500;
         BasicProperties propertiesWithNearScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, nearScheduledDeliveryTime)).build();
         byte[] secondMessageBody = randomise("message").getBytes();
-        channel.basicPublish(inboundQueueName, "", propertiesWithNearScheduledDeliveryHeader, secondMessageBody);
+        testChannel.basicPublish(inboundQueueName, "", propertiesWithNearScheduledDeliveryHeader, secondMessageBody);
         
         long immediateDeliveryTime = System.currentTimeMillis();
         byte[] thirdMessageBody = randomise("message").getBytes();
-        channel.basicPublish(inboundQueueName, "", null, thirdMessageBody);
+        testChannel.basicPublish(inboundQueueName, "", null, thirdMessageBody);
         
-        GetResponse firstResponse = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        GetResponse firstResponse = basicConsumeOnce(testChannel, outboundQueueName, 1, TimeUnit.SECONDS);
         long firstActualDeliveryTime = System.currentTimeMillis();
         assertArrayEquals(thirdMessageBody, firstResponse.getBody());
         assertDeliveredSoonAfter("third", immediateDeliveryTime, firstActualDeliveryTime);
         
-        GetResponse secondResponse = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        GetResponse secondResponse = basicConsumeOnce(testChannel, outboundQueueName, 1, TimeUnit.SECONDS);
         long secondActualDeliveryTime = System.currentTimeMillis();
         assertArrayEquals(secondMessageBody, secondResponse.getBody());
         assertDeliveredSoonAfter("second", nearScheduledDeliveryTime, secondActualDeliveryTime);
         
-        GetResponse thirdResponse = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        GetResponse thirdResponse = basicConsumeOnce(testChannel, outboundQueueName, 1, TimeUnit.SECONDS);
         long thirdActualDeliveryTime = System.currentTimeMillis();
         assertArrayEquals(firstMessageBody, thirdResponse.getBody());
         assertDeliveredSoonAfter("first", farScheduledDeliveryTime, thirdActualDeliveryTime);

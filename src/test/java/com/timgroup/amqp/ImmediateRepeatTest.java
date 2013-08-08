@@ -15,11 +15,11 @@ public class ImmediateRepeatTest extends RepeatTestBase {
     @Test
     public void aMessageSentToTheInboundQueueIsRepeatedOnTheOutboundQueue() throws Exception {
         byte[] body = randomise("message").getBytes();
-        channel.basicPublish(inboundQueueName, "", null, body);
+        testChannel.basicPublish(inboundQueueName, "", null, body);
         
         newTransceiver().start();
         
-        GetResponse response = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        GetResponse response = basicConsumeOnce(testChannel, outboundQueueName, 1, TimeUnit.SECONDS);
         assertArrayEquals(body, response.getBody());
     }
     
@@ -27,11 +27,11 @@ public class ImmediateRepeatTest extends RepeatTestBase {
     public void aRepeatedMessageHasItsOriginalMetadata() throws Exception {
         String routingKey = randomise("routing key");
         BasicProperties properties = randomiseProperties();
-        channel.basicPublish(inboundQueueName, routingKey, properties, EMPTY_BODY);
+        testChannel.basicPublish(inboundQueueName, routingKey, properties, EMPTY_BODY);
         
         newTransceiver().start();
         
-        GetResponse response = basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        GetResponse response = basicConsumeOnce(testChannel, outboundQueueName, 1, TimeUnit.SECONDS);
         assertEquals(routingKey, response.getEnvelope().getRoutingKey());
         assertPropertiesEquals(properties, response.getProps());
     }
@@ -41,9 +41,9 @@ public class ImmediateRepeatTest extends RepeatTestBase {
         newTransceiver().start();
         
         long expectedDeliveryTime = System.currentTimeMillis();
-        channel.basicPublish(inboundQueueName, "", null, EMPTY_BODY);
+        testChannel.basicPublish(inboundQueueName, "", null, EMPTY_BODY);
         
-        basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        basicConsumeOnce(testChannel, outboundQueueName, 1, TimeUnit.SECONDS);
         long actualDeliveryTime = System.currentTimeMillis();
         
         assertDeliveredSoonAfter("the", expectedDeliveryTime, actualDeliveryTime);
@@ -56,9 +56,9 @@ public class ImmediateRepeatTest extends RepeatTestBase {
         long scheduledDeliveryTime = System.currentTimeMillis() - 1000;
         long expectedDeliveryTime = System.currentTimeMillis();
         BasicProperties propertiesWithScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime)).build();
-        channel.basicPublish(inboundQueueName, "", propertiesWithScheduledDeliveryHeader, EMPTY_BODY);
+        testChannel.basicPublish(inboundQueueName, "", propertiesWithScheduledDeliveryHeader, EMPTY_BODY);
         
-        basicConsumeOnce(channel, outboundQueueName, 1, TimeUnit.SECONDS);
+        basicConsumeOnce(testChannel, outboundQueueName, 1, TimeUnit.SECONDS);
         long actualDeliveryTime = System.currentTimeMillis();
         
         assertDeliveredSoonAfter("the", expectedDeliveryTime, actualDeliveryTime);
