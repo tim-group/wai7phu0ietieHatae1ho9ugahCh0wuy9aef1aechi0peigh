@@ -3,6 +3,7 @@ package com.timgroup.amqp;
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -64,11 +65,13 @@ public abstract class IntegrationTestBase {
     public void tearDown() {
         deleteQueueQuietly(inboundQueueName);
         deleteQueueQuietly(outboundQueueName);
-        if (testConnection != null) {
-            Application.closeQuietly(Application.closeable(testConnection));
-        }
-        if (appConnection != null) {
-            Application.closeQuietly(Application.closeable(appConnection));
+        closeConnection(testConnection);
+        closeConnection(appConnection);
+    }
+
+    protected void closeConnection(Connection connection) {
+        if (connection != null && connection.isOpen()) {
+            Application.closeQuietly(Application.closeable(connection));
         }
     }
     
@@ -83,11 +86,14 @@ public abstract class IntegrationTestBase {
         }
     }
     
-    protected GetResponse basicConsumeOnce(final Channel channel, String queue, int timeout, TimeUnit unit) throws IOException, InterruptedException {
+    protected GetResponse basicConsumeOnce(final Channel channel, String queue, int timeout, TimeUnit unit) throws IOException, InterruptedException, TimeoutException {
         QueueingConsumer consumer = new QueueingConsumer(channel);
         channel.basicConsume(queue, true, consumer);
         Delivery delivery = consumer.nextDelivery(unit.toMillis(timeout));
         channel.basicCancel(consumer.getConsumerTag());
+        if (delivery == null) {
+            throw new TimeoutException();
+        }
         return new GetResponse(delivery.getEnvelope(), delivery.getProperties(), delivery.getBody(), 1);
     }
     
