@@ -33,13 +33,13 @@ public class Receiver implements Closeable {
     }
     
     public void start() throws IOException {
-        consumerTag = channel.basicConsume(queueName, true, new DefaultConsumer(channel) {
+        consumerTag = channel.basicConsume(queueName, false, new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
                 Long scheduledDeliveryTime = getNumericHeader(properties, SCHEDULED_DELIVERY_HEADER);
                 long delay = scheduledDeliveryTime != null ? scheduledDeliveryTime - System.currentTimeMillis() : 0;
                 
-                transmitter.transmit(envelope.getRoutingKey(), properties, body, delay);
+                transmitter.transmit(envelope.getRoutingKey(), envelope.getDeliveryTag(), properties, body, delay);
             }
         });
     }

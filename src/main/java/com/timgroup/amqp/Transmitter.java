@@ -30,11 +30,12 @@ public class Transmitter implements Closeable {
         return queueName;
     }
     
-    public void transmit(final String routingKey, final BasicProperties properties, final byte[] body, long delay) {
+    public void transmit(final String routingKey, final long deliveryTag, final BasicProperties properties, final byte[] body, long delay) {
         Callable<Void> command = new Callable<Void>() {
             @Override
             public Void call() throws IOException {
                 channel.basicPublish(queueName, routingKey, properties, body);
+                channel.basicAck(deliveryTag, false);
                 return null;
             }
         };

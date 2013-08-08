@@ -3,8 +3,8 @@ package com.timgroup.amqp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -12,7 +12,8 @@ import com.rabbitmq.client.GetResponse;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class ScheduledRepeatTest extends RepeatTestBase {
     
@@ -82,10 +83,44 @@ public class ScheduledRepeatTest extends RepeatTestBase {
         assertDeliveredSoonAfter("first", farScheduledDeliveryTime, thirdActualDeliveryTime);
     }
     
-    @Ignore("pending") // TODO
     @Test
-    public void aScheduledMessageIsNotAcknowledgedUntilAfterItHasBeenRepeated() throws Exception {
-        fail("not yet implemented, and not even sure how to test it");
+    public void aScheduledMessageIsRemovedFromTheQueueOnceDelivered() throws Exception {
+        newTransceiver().start();
+        
+        long scheduledDeliveryTime = System.currentTimeMillis() + 1000;
+        BasicProperties propertiesWithScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime)).build();
+        testChannel.basicPublish(inboundQueueName, "", propertiesWithScheduledDeliveryHeader, EMPTY_BODY);
+        
+        assertNotNull(basicConsumeOnce(testChannel, outboundQueueName, 2, TimeUnit.SECONDS));
+        
+        closeConnection(appConnection);
+        
+        // this assertion is a bit wacky, but there you go
+        try {
+            assertNull(basicConsumeOnce(testChannel, inboundQueueName, 1, TimeUnit.SECONDS));
+        } catch (TimeoutException e) {}
+    }
+    
+    /**
+     * This test is about the fact that we don't acknowledge messages until
+     * they're delivered. But you can't test that directly.
+     */
+    @Test
+    public void aScheduledMessageIsLeftOnTheQueueIfItCannotBeDelivered() throws Exception {
+        newTransceiver().start();
+        
+        long scheduledDeliveryTime = System.currentTimeMillis() + 1000;
+        BasicProperties propertiesWithScheduledDeliveryHeader = new BasicProperties.Builder().headers(singleHeader(Receiver.SCHEDULED_DELIVERY_HEADER, scheduledDeliveryTime)).build();
+        testChannel.basicPublish(inboundQueueName, "", propertiesWithScheduledDeliveryHeader, EMPTY_BODY);
+        
+        Thread.sleep(100);
+        closeConnection(appConnection);
+        
+        // these assertions are a bit wacky, but there you go
+        assertNotNull(basicConsumeOnce(testChannel, inboundQueueName, 2, TimeUnit.SECONDS));
+        try {
+            assertNull(basicConsumeOnce(testChannel, outboundQueueName, 1, TimeUnit.SECONDS));
+        } catch (TimeoutException e) {}
     }
     
     private BasicProperties withHeader(BasicProperties properties, String headerName, Object headerValue) {
